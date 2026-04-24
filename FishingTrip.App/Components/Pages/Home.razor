@@ -1,0 +1,114 @@
+@page "/"
+@inject TripManagementService TripManagementService
+
+<PageTitle>Fishing Trip</PageTitle>
+
+<div class="page">
+    <section class="hero">
+        <div>
+            <p class="eyebrow">Szkielet architektury</p>
+            <h1>@_dashboard.Title</h1>
+            <p class="summary">
+                Monolit warstwowy: frontend w Blazorze korzysta z Application,
+                Application operuje na Domain, a Infrastructure dostarcza implementacje repozytoriow.
+            </p>
+        </div>
+        <button class="primary-button" @onclick="AddDemoCatch">Dodaj demo polow</button>
+    </section>
+
+    <section class="grid">
+        <article class="card">
+            <h2>Warstwy</h2>
+            <div class="stack">
+                <div>
+                    <h3>UI</h3>
+                    <p>Blazor Web App, komponenty Razor i prezentacja danych w przegladarce.</p>
+                </div>
+                <div>
+                    <h3>Application</h3>
+                    <p>Przypadki uzycia typu rejestracja polowu i pobranie dashboardu.</p>
+                </div>
+                <div>
+                    <h3>Domain</h3>
+                    <p>Encje: wedkarz, polow i wyjazd oraz podstawowe reguly walidacyjne.</p>
+                </div>
+                <div>
+                    <h3>Infrastructure</h3>
+                    <p>Repozytoria w pamieci. Potem bez problemu podmienimy je na SQLite.</p>
+                </div>
+            </div>
+        </article>
+
+        <article class="card">
+            <h2>Wedkarze</h2>
+            <div class="chips">
+                @foreach (var angler in _dashboard.Anglers)
+                {
+                    <div class="chip">@angler.DisplayName</div>
+                }
+            </div>
+        </article>
+
+        <article class="card wide">
+            <h2>Ostatnie polowy</h2>
+
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Wedkarz</th>
+                            <th>Ryba</th>
+                            <th>Waga</th>
+                            <th>Dlugosc</th>
+                            <th>Data</th>
+                            <th>Miejsce</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in _dashboard.Catches)
+                        {
+                            <tr>
+                                <td>@item.AnglerName</td>
+                                <td>@item.Species</td>
+                                <td>@item.WeightInKg.ToString("0.00") kg</td>
+                                <td>@item.LengthInCm.ToString("0") cm</td>
+                                <td>@item.CaughtAt.ToString("dd.MM.yyyy HH:mm")</td>
+                                <td>@item.Location</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </article>
+    </section>
+</div>
+
+@code {
+    private TripDashboard _dashboard = new("Ladowanie...", [], []);
+
+    protected override void OnInitialized()
+    {
+        LoadDashboard();
+    }
+
+    private void AddDemoCatch()
+    {
+        var selectedAngler = _dashboard.Anglers.First();
+
+        TripManagementService.RegisterCatch(new RegisterCatchCommand(
+            selectedAngler.Id,
+            "Okon",
+            0.85m,
+            31m,
+            DateTime.Now,
+            "Przy trzcinach",
+            "Dodane z ekranu startowego"));
+
+        LoadDashboard();
+    }
+
+    private void LoadDashboard()
+    {
+        _dashboard = TripManagementService.GetDashboard();
+    }
+}
