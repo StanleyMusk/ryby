@@ -1,0 +1,205 @@
+@page "/admin"
+@inject TripManagementService TripManagementService
+
+<PageTitle>Administracja</PageTitle>
+
+<section class="page-header">
+    <div>
+        <p class="eyebrow">Panel</p>
+        <h1>Administracja</h1>
+    </div>
+    <a class="button primary" href="/catches/new">Dodaj polow</a>
+</section>
+
+@if (!string.IsNullOrWhiteSpace(_message))
+{
+    <div class="admin-message">@_message</div>
+}
+
+<section class="dashboard-grid admin-grid">
+    <article class="panel report-table">
+        <div class="panel-title">
+            <div>
+                <p class="eyebrow">Baza</p>
+                <h2>Wedkarze</h2>
+            </div>
+        </div>
+
+        @if (!_dashboard.Anglers.Any())
+        {
+            <div class="empty-state">
+                <h2>Brak wedkarzy</h2>
+                <p>Po dodaniu wedkarza pojawi sie tutaj mozliwosc zarzadzania.</p>
+            </div>
+        }
+        else
+        {
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Wedkarz</th>
+                            <th>Polowy</th>
+                            <th>Raport</th>
+                            <th>Akcja</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var angler in _dashboard.Anglers)
+                        {
+                            <tr>
+                                <td>@angler.DisplayName</td>
+                                <td>@GetCatchCount(angler.Id)</td>
+                                <td><a class="text-link" href="@($"/reports/anglers/{angler.Id}")">Otworz</a></td>
+                                <td>
+                                    @if (_anglerPendingDeletion == angler.Id)
+                                    {
+                                        <div class="admin-actions">
+                                            <button class="button danger" type="button" @onclick="() => DeleteAngler(angler)">
+                                                Potwierdz
+                                            </button>
+                                            <button class="button ghost" type="button" @onclick="CancelDeletion">
+                                                Anuluj
+                                            </button>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <button class="button danger" type="button" @onclick="() => AskToDeleteAngler(angler.Id)">
+                                            Usun
+                                        </button>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </article>
+
+    <article class="panel report-table">
+        <div class="panel-title">
+            <div>
+                <p class="eyebrow">Rejestr</p>
+                <h2>Polowy</h2>
+            </div>
+        </div>
+
+        @if (!_dashboard.Catches.Any())
+        {
+            <div class="empty-state">
+                <h2>Brak polowow</h2>
+                <p>Po zapisaniu polowu pojawi sie tutaj mozliwosc usuniecia rekordu.</p>
+            </div>
+        }
+        else
+        {
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Wedkarz</th>
+                            <th>Ryba</th>
+                            <th>Waga</th>
+                            <th>Data</th>
+                            <th>Akcja</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var catchRecord in _dashboard.Catches)
+                        {
+                            <tr>
+                                <td>@catchRecord.AnglerName</td>
+                                <td>@catchRecord.Species</td>
+                                <td>@catchRecord.WeightInKg.ToString("0.00") kg</td>
+                                <td>@catchRecord.CaughtAt.ToString("dd.MM.yyyy HH:mm")</td>
+                                <td>
+                                    @if (_catchPendingDeletion == catchRecord.Id)
+                                    {
+                                        <div class="admin-actions">
+                                            <button class="button danger" type="button" @onclick="() => DeleteCatch(catchRecord)">
+                                                Potwierdz
+                                            </button>
+                                            <button class="button ghost" type="button" @onclick="CancelDeletion">
+                                                Anuluj
+                                            </button>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <button class="button danger" type="button" @onclick="() => AskToDeleteCatch(catchRecord.Id)">
+                                            Usun
+                                        </button>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </article>
+</section>
+
+@code {
+    private TripDashboard _dashboard = new("Ladowanie...", [], []);
+    private string? _message;
+    private Guid? _anglerPendingDeletion;
+    private Guid? _catchPendingDeletion;
+
+    protected override void OnInitialized()
+    {
+        LoadDashboard();
+    }
+
+    private void DeleteAngler(AnglerSummary angler)
+    {
+        var deleted = TripManagementService.DeleteAngler(angler.Id);
+        _message = deleted
+            ? $"Usunieto wedkarza: {angler.DisplayName}. Powiazane polowy tez zostaly usuniete."
+            : $"Nie znaleziono wedkarza: {angler.DisplayName}.";
+
+        CancelDeletion();
+        LoadDashboard();
+    }
+
+    private void DeleteCatch(CatchSummary catchRecord)
+    {
+        var deleted = TripManagementService.DeleteCatch(catchRecord.Id);
+        _message = deleted
+            ? $"Usunieto polow: {catchRecord.Species}, {catchRecord.WeightInKg:0.00} kg."
+            : $"Nie znaleziono polowu: {catchRecord.Species}.";
+
+        CancelDeletion();
+        LoadDashboard();
+    }
+
+    private void AskToDeleteAngler(Guid anglerId)
+    {
+        _anglerPendingDeletion = anglerId;
+        _catchPendingDeletion = null;
+    }
+
+    private void AskToDeleteCatch(Guid catchId)
+    {
+        _catchPendingDeletion = catchId;
+        _anglerPendingDeletion = null;
+    }
+
+    private void CancelDeletion()
+    {
+        _anglerPendingDeletion = null;
+        _catchPendingDeletion = null;
+    }
+
+    private int GetCatchCount(Guid anglerId)
+    {
+        return _dashboard.Catches.Count(catchRecord => catchRecord.AnglerId == anglerId);
+    }
+
+    private void LoadDashboard()
+    {
+        _dashboard = TripManagementService.GetDashboard();
+    }
+}

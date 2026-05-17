@@ -9,7 +9,6 @@ public sealed class CatchRecord
         decimal weightInKg,
         decimal lengthInCm,
         DateTime caughtAt,
-        string location,
         string? note)
     {
         if (anglerId == Guid.Empty)
@@ -32,18 +31,12 @@ public sealed class CatchRecord
             throw new ArgumentOutOfRangeException(nameof(lengthInCm), "Length must be greater than zero.");
         }
 
-        if (string.IsNullOrWhiteSpace(location))
-        {
-            throw new ArgumentException("Location is required.", nameof(location));
-        }
-
         Id = id;
         AnglerId = anglerId;
         Species = species.Trim();
         WeightInKg = weightInKg;
         LengthInCm = lengthInCm;
         CaughtAt = caughtAt;
-        Location = location.Trim();
         Note = string.IsNullOrWhiteSpace(note) ? null : note.Trim();
     }
 
@@ -58,8 +51,6 @@ public sealed class CatchRecord
     public decimal LengthInCm { get; }
 
     public DateTime CaughtAt { get; }
-
-    public string Location { get; }
 
     public string? Note { get; }
 }

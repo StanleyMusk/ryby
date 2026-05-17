@@ -6,5 +6,4 @@ public sealed record RegisterCatchCommand(
     decimal WeightInKg,
     decimal LengthInCm,
     DateTime CaughtAt,
-    string Location,
     string? Note);

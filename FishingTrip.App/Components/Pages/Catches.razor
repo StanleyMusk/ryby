@@ -1,0 +1,49 @@
+@page "/catches"
+@inject TripManagementService TripManagementService
+
+<PageTitle>Polowy</PageTitle>
+
+<section class="page-header">
+    <div>
+        <p class="eyebrow">Baza</p>
+        <h1>Polowy</h1>
+    </div>
+    <a class="button primary" href="/catches/new">Dodaj polow</a>
+</section>
+
+<section class="panel">
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Wedkarz</th>
+                    <th>Ryba</th>
+                    <th>Waga</th>
+                    <th>Dlugosc</th>
+                    <th>Data</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in _dashboard.Catches)
+                {
+                    <tr>
+                        <td>@item.AnglerName</td>
+                        <td>@item.Species</td>
+                        <td>@item.WeightInKg.ToString("0.00") kg</td>
+                        <td>@item.LengthInCm.ToString("0") cm</td>
+                        <td>@item.CaughtAt.ToString("dd.MM.yyyy HH:mm")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</section>
+
+@code {
+    private TripDashboard _dashboard = new("Ladowanie...", [], []);
+
+    protected override void OnInitialized()
+    {
+        _dashboard = TripManagementService.GetDashboard();
+    }
+}

@@ -1,5 +1,6 @@
 using FishingTrip.Application.Abstractions;
 using FishingTrip.Domain.Entities;
+using Microsoft.EntityFrameworkCore;
 
 namespace FishingTrip.Infrastructure.Persistence;
 
@@ -14,55 +15,45 @@ public sealed class SqliteAnglerRepository : IAnglerRepository
 
     public IReadOnlyCollection<Angler> GetAll()
     {
-        using var connection = _connectionFactory.CreateConnection();
-        connection.Open();
+        using var dbContext = _connectionFactory.CreateDbContext();
 
-        using var command = connection.CreateCommand();
-        command.CommandText =
-            """
-            SELECT Id, FirstName, Nickname
-            FROM Anglers
-            ORDER BY FirstName, Nickname;
-            """;
-
-        using var reader = command.ExecuteReader();
-        var anglers = new List<Angler>();
-
-        while (reader.Read())
-        {
-            anglers.Add(new Angler(
-                Guid.Parse(reader.GetString(0)),
-                reader.GetString(1),
-                reader.GetString(2)));
-        }
-
-        return anglers;
+        return dbContext.Anglers
+            .AsNoTracking()
+            .OrderBy(angler => angler.FirstName)
+            .ThenBy(angler => angler.LastName)
+            .ThenBy(angler => angler.Nickname)
+            .ToArray();
     }
 
     public Angler? GetById(Guid id)
     {
-        using var connection = _connectionFactory.CreateConnection();
-        connection.Open();
+        using var dbContext = _connectionFactory.CreateDbContext();
 
-        using var command = connection.CreateCommand();
-        command.CommandText =
-            """
-            SELECT Id, FirstName, Nickname
-            FROM Anglers
-            WHERE Id = @id
-            LIMIT 1;
-            """;
-        command.Parameters.AddWithValue("@id", id.ToString());
+        return dbContext.Anglers
+            .AsNoTracking()
+            .SingleOrDefault(angler => angler.Id == id);
+    }
 
-        using var reader = command.ExecuteReader();
-        if (!reader.Read())
+    public void Add(Angler angler)
+    {
+        using var dbContext = _connectionFactory.CreateDbContext();
+
+        dbContext.Anglers.Add(angler);
+        dbContext.SaveChanges();
+    }
+
+    public bool DeleteById(Guid id)
+    {
+        using var dbContext = _connectionFactory.CreateDbContext();
+
+        var angler = dbContext.Anglers.SingleOrDefault(angler => angler.Id == id);
+        if (angler is null)
         {
-            return null;
+            return false;
         }
 
-        return new Angler(
-            Guid.Parse(reader.GetString(0)),
-            reader.GetString(1),
-            reader.GetString(2));
+        dbContext.Anglers.Remove(angler);
+        dbContext.SaveChanges();
+        return true;
     }
 }

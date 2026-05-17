@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Data.Sqlite;
 
 namespace FishingTrip.Infrastructure.Persistence;
@@ -21,8 +22,12 @@ public sealed class SqliteConnectionFactory
         }.ToString();
     }
 
-    public SqliteConnection CreateConnection()
+    public FishingTripDbContext CreateDbContext()
     {
-        return new SqliteConnection(_connectionString);
+        var options = new DbContextOptionsBuilder<FishingTripDbContext>()
+            .UseSqlite(_connectionString)
+            .Options;
+
+        return new FishingTripDbContext(options);
     }
 }

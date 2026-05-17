@@ -1,0 +1,67 @@
+@page "/anglers/new"
+@inject TripManagementService TripManagementService
+@inject NavigationManager Navigation
+
+<PageTitle>Dodaj wedkarza</PageTitle>
+
+<section class="page-header">
+    <div>
+        <p class="eyebrow">Nowy rekord</p>
+        <h1>Dodaj wedkarza</h1>
+    </div>
+    <a class="button secondary" href="/anglers">Wroc do listy</a>
+</section>
+
+<section class="form-shell">
+    <article class="panel form-panel">
+        <EditForm Model="_form" OnValidSubmit="Save">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+
+            <div class="field-grid">
+                <label>
+                    <span>Imie</span>
+                    <InputText @bind-Value="_form.FirstName" />
+                </label>
+                <label>
+                    <span>Nazwisko</span>
+                    <InputText @bind-Value="_form.LastName" />
+                </label>
+                <label>
+                    <span>Ksywka opcjonalnie</span>
+                    <InputText @bind-Value="_form.Nickname" />
+                </label>
+            </div>
+
+            <div class="form-actions">
+                <button class="button primary" type="submit">Zapisz wedkarza</button>
+                <a class="button ghost" href="/anglers">Anuluj</a>
+            </div>
+        </EditForm>
+    </article>
+</section>
+
+@code {
+    private AnglerForm _form = new();
+
+    private void Save()
+    {
+        TripManagementService.RegisterAngler(new RegisterAnglerCommand(
+            _form.FirstName,
+            _form.LastName,
+            _form.Nickname));
+
+        Navigation.NavigateTo("/anglers");
+    }
+
+    private sealed class AnglerForm
+    {
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Podaj imie.")]
+        public string FirstName { get; set; } = string.Empty;
+
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Podaj nazwisko.")]
+        public string LastName { get; set; } = string.Empty;
+
+        public string? Nickname { get; set; }
+    }
+}

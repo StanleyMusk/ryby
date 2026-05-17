@@ -7,4 +7,8 @@ public interface ICatchRepository
     IReadOnlyCollection<CatchRecord> GetAll();
 
     void Add(CatchRecord catchRecord);
+
+    bool DeleteById(Guid id);
+
+    int DeleteByAnglerId(Guid anglerId);
 }

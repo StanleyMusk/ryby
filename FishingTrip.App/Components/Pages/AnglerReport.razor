@@ -1,0 +1,183 @@
+@page "/reports/anglers/{AnglerId:guid}"
+@inject TripManagementService TripManagementService
+
+<PageTitle>Raport wedkarza</PageTitle>
+
+@if (_report is null)
+{
+    <section class="page-header">
+        <div>
+            <p class="eyebrow">Raport</p>
+            <h1>Nie znaleziono wedkarza</h1>
+        </div>
+        <a class="button secondary" href="/reports">Wroc do klasyfikacji</a>
+    </section>
+}
+else
+{
+    <section class="page-header">
+        <div>
+            <p class="eyebrow">Raport wedkarza</p>
+            <h1>@_report.DisplayName</h1>
+        </div>
+        <a class="button secondary" href="/reports">Wroc do klasyfikacji</a>
+    </section>
+
+    <section class="metric-grid">
+        <article class="metric-card">
+            <small>Polowy</small>
+            <strong>@_report.CatchCount</strong>
+        </article>
+        <article class="metric-card">
+            <small>Laczna waga</small>
+            <strong>@_report.TotalWeightInKg.ToString("0.00") kg</strong>
+        </article>
+        <article class="metric-card">
+            <small>Najwieksza ryba</small>
+            <strong>@_report.BiggestWeightInKg.ToString("0.00") kg</strong>
+        </article>
+        <article class="metric-card">
+            <small>Gatunki</small>
+            <strong>@_report.SpeciesCount</strong>
+        </article>
+    </section>
+
+    <section class="dashboard-grid">
+        <article class="panel">
+            <div class="panel-title">
+                <div>
+                    <p class="eyebrow">Profil</p>
+                    <h2>Najwazniejsze wyniki</h2>
+                </div>
+            </div>
+
+            <div class="stat-list">
+                <div>
+                    <span>Srednia waga ryby</span>
+                    <strong>@_report.AverageWeightInKg.ToString("0.00") kg</strong>
+                </div>
+                <div>
+                    <span>Najlepszy gatunek</span>
+                    <strong>@_report.FavoriteSpecies</strong>
+                </div>
+                <div>
+                    <span>Ostatni polow</span>
+                    <strong>@LastCatchLabel</strong>
+                </div>
+            </div>
+        </article>
+
+        <article class="panel">
+            <div class="panel-title">
+                <div>
+                    <p class="eyebrow">Gatunki</p>
+                    <h2>Podzial polowow</h2>
+                </div>
+            </div>
+
+            @if (!_report.SpeciesBreakdown.Any())
+            {
+                <div class="empty-state">
+                    <h2>Brak polowow</h2>
+                    <p>Raport uzupelni sie po dodaniu pierwszej ryby tego wedkarza.</p>
+                </div>
+            }
+            else
+            {
+                <div class="species-list">
+                    @foreach (var species in _report.SpeciesBreakdown)
+                    {
+                        <div class="species-row">
+                            <span>
+                                <strong>@species.Species</strong>
+                                <small>@species.CatchCount polowow</small>
+                            </span>
+                            <span>@species.TotalWeightInKg.ToString("0.00") kg</span>
+                        </div>
+                    }
+                </div>
+            }
+        </article>
+    </section>
+
+    <section class="panel report-table">
+        <div class="panel-title">
+            <div>
+                <p class="eyebrow">Glebszy podzial</p>
+                <h2>Drapiezniki i pozostale ryby</h2>
+            </div>
+        </div>
+
+        @if (!_report.FishKindBreakdown.Any())
+        {
+            <div class="empty-state">
+                <h2>Brak polowow</h2>
+                <p>Podzial pojawi sie po dodaniu pierwszej ryby tego wedkarza.</p>
+            </div>
+        }
+        else
+        {
+            <div class="species-list">
+                @foreach (var kind in _report.FishKindBreakdown)
+                {
+                    <div class="species-row">
+                        <span>
+                            <strong>@kind.Kind</strong>
+                            <small>@kind.CatchCount polowow, @kind.SpeciesCount gatunkow</small>
+                        </span>
+                        <span>@kind.TotalWeightInKg.ToString("0.00") kg</span>
+                    </div>
+                }
+            </div>
+        }
+    </section>
+
+    <section class="panel report-table">
+        <div class="panel-title">
+            <div>
+                <p class="eyebrow">Historia</p>
+                <h2>Polowy wedkarza</h2>
+            </div>
+        </div>
+
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Ryba</th>
+                        <th>Waga</th>
+                        <th>Dlugosc</th>
+                        <th>Data</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in _report.Catches)
+                    {
+                        <tr>
+                            <td>@item.Species</td>
+                            <td>@item.WeightInKg.ToString("0.00") kg</td>
+                            <td>@item.LengthInCm.ToString("0") cm</td>
+                            <td>@item.CaughtAt.ToString("dd.MM.yyyy HH:mm")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </section>
+}
+
+@code {
+    [Parameter]
+    public Guid AnglerId { get; set; }
+
+    private FishingTrip.Application.Contracts.AnglerReport? _report;
+
+    private string LastCatchLabel => _report?.LastCatchAt is null
+        ? "-"
+        : _report.LastCatchAt.Value.ToString("dd.MM.yyyy HH:mm");
+
+    protected override void OnParametersSet()
+    {
+        _report = TripManagementService.GetAnglerReport(AnglerId);
+    }
+}

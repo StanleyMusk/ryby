@@ -1,0 +1,118 @@
+@page "/catches/new"
+@inject TripManagementService TripManagementService
+@inject NavigationManager Navigation
+
+<PageTitle>Dodaj polow</PageTitle>
+
+<section class="page-header">
+    <div>
+        <p class="eyebrow">Nowy rekord</p>
+        <h1>Dodaj polow</h1>
+    </div>
+    <a class="button secondary" href="/catches">Wroc do listy</a>
+</section>
+
+<section class="form-shell">
+    <article class="panel form-panel">
+        @if (!_dashboard.Anglers.Any())
+        {
+            <div class="empty-state">
+                <h2>Najpierw dodaj wedkarza</h2>
+                <p>Polow musi byc przypisany do osoby z bazy.</p>
+                <a class="button primary" href="/anglers/new">Dodaj wedkarza</a>
+            </div>
+        }
+        else
+        {
+            <EditForm Model="_form" OnValidSubmit="Save">
+                <DataAnnotationsValidator />
+                <ValidationSummary />
+
+                <div class="field-grid">
+                    <label>
+                        <span>Wedkarz</span>
+                        <InputSelect @bind-Value="_form.AnglerId">
+                            @foreach (var angler in _dashboard.Anglers)
+                            {
+                                <option value="@angler.Id">@angler.DisplayName</option>
+                            }
+                        </InputSelect>
+                    </label>
+                    <label>
+                        <span>Gatunek</span>
+                        <InputSelect @bind-Value="_form.Species">
+                            @foreach (var species in FishSpeciesCatalog.Species)
+                            {
+                                <option value="@species">@species</option>
+                            }
+                        </InputSelect>
+                    </label>
+                    <label>
+                        <span>Waga kg</span>
+                        <InputNumber @bind-Value="_form.WeightInKg" />
+                    </label>
+                    <label>
+                        <span>Dlugosc cm</span>
+                        <InputNumber @bind-Value="_form.LengthInCm" />
+                    </label>
+                    <label>
+                        <span>Data i godzina</span>
+                        <InputDate Type="InputDateType.DateTimeLocal" @bind-Value="_form.CaughtAt" />
+                    </label>
+                    <label class="wide-field">
+                        <span>Notatka</span>
+                        <InputTextArea @bind-Value="_form.Note" />
+                    </label>
+                </div>
+
+                <div class="form-actions">
+                    <button class="button primary" type="submit">Zapisz polow</button>
+                    <a class="button ghost" href="/catches">Anuluj</a>
+                </div>
+            </EditForm>
+        }
+    </article>
+</section>
+
+@code {
+    private TripDashboard _dashboard = new("Ladowanie...", [], []);
+    private CatchForm _form = new();
+
+    protected override void OnInitialized()
+    {
+        _dashboard = TripManagementService.GetDashboard();
+        _form.AnglerId = _dashboard.Anglers.FirstOrDefault()?.Id ?? Guid.Empty;
+        _form.Species = FishSpeciesCatalog.Species[0];
+    }
+
+    private void Save()
+    {
+        TripManagementService.RegisterCatch(new RegisterCatchCommand(
+            _form.AnglerId,
+            _form.Species,
+            _form.WeightInKg,
+            _form.LengthInCm,
+            _form.CaughtAt,
+            _form.Note));
+
+        Navigation.NavigateTo("/catches");
+    }
+
+    private sealed class CatchForm
+    {
+        public Guid AnglerId { get; set; }
+
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Podaj gatunek.")]
+        public string Species { get; set; } = string.Empty;
+
+        [System.ComponentModel.DataAnnotations.Range(0.01, 500, ErrorMessage = "Waga musi byc wieksza od zera.")]
+        public decimal WeightInKg { get; set; }
+
+        [System.ComponentModel.DataAnnotations.Range(0.01, 500, ErrorMessage = "Dlugosc musi byc wieksza od zera.")]
+        public decimal LengthInCm { get; set; }
+
+        public DateTime CaughtAt { get; set; } = DateTime.Now;
+
+        public string? Note { get; set; }
+    }
+}

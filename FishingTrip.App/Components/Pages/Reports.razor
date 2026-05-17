@@ -1,0 +1,184 @@
+@page "/reports"
+@inject TripManagementService TripManagementService
+
+<PageTitle>Klasyfikacja</PageTitle>
+
+<section class="page-header">
+    <div>
+        <p class="eyebrow">Raporty</p>
+        <h1>Klasyfikacja wyjazdu</h1>
+    </div>
+    <a class="button primary" href="/catches/new">Dodaj polow</a>
+</section>
+
+<div class="classification-tabs" role="tablist" aria-label="Typ klasyfikacji">
+    @foreach (var option in ClassificationOptions)
+    {
+        <button
+            type="button"
+            role="tab"
+            aria-selected="@(_selectedClassification == option.Key)"
+            class="@GetTabClass(option.Key)"
+            @onclick="() => SelectClassification(option.Key)">
+            @option.Label
+        </button>
+    }
+</div>
+
+<section class="metric-grid">
+    <article class="metric-card">
+        <small>Wedkarze</small>
+        <strong>@_report.AnglerCount</strong>
+    </article>
+    <article class="metric-card">
+        <small>Polowy</small>
+        <strong>@SelectedClassification.CatchCount</strong>
+    </article>
+    <article class="metric-card">
+        <small>Laczna waga</small>
+        <strong>@SelectedClassification.TotalWeightInKg.ToString("0.00") kg</strong>
+    </article>
+    <article class="metric-card">
+        <small>Najwieksza ryba</small>
+        <strong>@SelectedClassification.BiggestWeightInKg.ToString("0.00") kg</strong>
+    </article>
+</section>
+
+<section class="panel report-table">
+    <div class="panel-title">
+        <div>
+            <p class="eyebrow">Sekcja</p>
+            <h2>@SelectedClassification.Title</h2>
+        </div>
+    </div>
+
+    <div class="metric-grid compact-metrics">
+        <article class="metric-card">
+            <small>Polowy</small>
+            <strong>@SelectedClassification.CatchCount</strong>
+        </article>
+        <article class="metric-card">
+            <small>Laczna waga</small>
+            <strong>@SelectedClassification.TotalWeightInKg.ToString("0.00") kg</strong>
+        </article>
+        <article class="metric-card">
+            <small>Najwieksza</small>
+            <strong>@SelectedClassification.BiggestWeightInKg.ToString("0.00") kg</strong>
+        </article>
+        <article class="metric-card">
+            <small>Gatunki</small>
+            <strong>@SelectedClassification.SpeciesCount</strong>
+        </article>
+    </div>
+
+    <div class="stat-list section-stats">
+        <div>
+            <span>Srednia waga ryby</span>
+            <strong>@SelectedClassification.AverageWeightInKg.ToString("0.00") kg</strong>
+        </div>
+        <div>
+            <span>Najwiekszy gatunek</span>
+            <strong>@SelectedClassification.BiggestSpecies</strong>
+        </div>
+    </div>
+
+    @if (!SelectedClassification.Ranking.Any())
+    {
+        <div class="empty-state">
+            <h2>Brak danych do klasyfikacji</h2>
+            <p>Dodaj polow z tej sekcji, a ranking pojawi sie tutaj.</p>
+        </div>
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Wedkarz</th>
+                        <th>Polowy</th>
+                        <th>Laczna waga</th>
+                        <th>Najwieksza</th>
+                        <th>Srednia</th>
+                        <th>Gatunki</th>
+                        <th>Raport</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in SelectedClassification.Ranking.Select((value, index) => new { Value = value, Position = index + 1 }))
+                    {
+                        <tr>
+                            <td>@row.Position</td>
+                            <td>@row.Value.DisplayName</td>
+                            <td>@row.Value.CatchCount</td>
+                            <td>@row.Value.TotalWeightInKg.ToString("0.00") kg</td>
+                            <td>@row.Value.BiggestWeightInKg.ToString("0.00") kg (@row.Value.BiggestSpecies)</td>
+                            <td>@row.Value.AverageWeightInKg.ToString("0.00") kg</td>
+                            <td>@row.Value.SpeciesCount</td>
+                            <td><a class="text-link" href="@($"/reports/anglers/{row.Value.AnglerId}")">Otworz</a></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</section>
+
+@code {
+    private const string OverallClassification = "overall";
+    private const string PredatorsClassification = "predators";
+    private const string OtherFishClassification = "other";
+
+    private readonly record struct ClassificationOption(string Key, string Label);
+
+    private static readonly IReadOnlyList<ClassificationOption> ClassificationOptions =
+    [
+        new(OverallClassification, "Ogolna"),
+        new(PredatorsClassification, "Drapiezniki"),
+        new(OtherFishClassification, "Niedrapiezne")
+    ];
+
+    private static readonly TripClassificationSection EmptySection = new(
+        "Ladowanie...",
+        0,
+        0m,
+        0m,
+        "-",
+        0m,
+        0,
+        []);
+
+    private TripClassificationReport _report = new(
+        "Ladowanie...",
+        0,
+        EmptySection,
+        EmptySection,
+        EmptySection);
+
+    private string _selectedClassification = OverallClassification;
+
+    private TripClassificationSection SelectedClassification => _selectedClassification switch
+    {
+        PredatorsClassification => _report.Predators,
+        OtherFishClassification => _report.OtherFish,
+        _ => _report.Overall
+    };
+
+    protected override void OnInitialized()
+    {
+        _report = TripManagementService.GetClassificationReport();
+    }
+
+    private void SelectClassification(string classification)
+    {
+        _selectedClassification = classification;
+    }
+
+    private string GetTabClass(string classification)
+    {
+        return _selectedClassification == classification
+            ? "classification-tab active"
+            : "classification-tab";
+    }
+}
